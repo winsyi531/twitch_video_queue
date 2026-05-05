@@ -2,14 +2,36 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Twitch YouTube Overlay</title>
+    <title>Twitch YT Manager</title>
     <link rel="stylesheet" href="style.css">
-    <!-- 引入 Twitch 聊天室監聽工具 -->
     <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
 </head>
-<body>
-    <!-- YouTube 影片會被載入到這個 div -->
-    <div id="player"></div>
+<body class="dark-theme">
+    <div class="container">
+        <!-- 左側：清單管理區 -->
+        <div class="sidebar">
+            <div class="controls">
+                <button id="toggleAuto">Auto 模式: <span id="autoStatus">OFF</span></button>
+                <button id="clearList">清空清單</button>
+            </div>
+            <table id="playlist">
+                <thead>
+                    <tr>
+                        <th>標題 (Title)</th>
+                        <th>連結 (Link)</th>
+                    </tr>
+                </thead>
+                <tbody id="queueBody">
+                    <!-- 點播影片會出現在這裡 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 右側：影片播放區 -->
+        <div class="main-content">
+            <div id="player"></div>
+        </div>
+    </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="script.js"></script>
