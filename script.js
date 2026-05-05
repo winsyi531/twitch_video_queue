@@ -35,7 +35,7 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
 function addToQueue(videoId, sender) {
     const videoData = {
         id: videoId,
-        title: `影片由 ${sender} 提供`, // 註：前端抓不到真實標題需後端，這裡先顯示來源
+        title: `${sender}`, // 註：前端抓不到真實標題需後端，這裡先顯示來源
         url: `https://youtu.be/${videoId}`
     };
     queue.push(videoData);
@@ -62,6 +62,11 @@ function renderQueue() {
 
 // 播放指定索引的影片
 function playVideo(index) {
+    if (!player || typeof player.loadVideoById !== "function") {
+        console.error("YouTube 播放器尚未準備就緒，請稍候。");
+        alert("播放器還在載入中，請稍等幾秒！");
+        return;
+    }
     currentVideoIndex = index;
     player.loadVideoById(queue[index].id);
     renderQueue();
