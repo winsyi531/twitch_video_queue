@@ -87,4 +87,4 @@ document.getElementById("clearList").onclick = () => {
     renderQueue();
 };
 
-ComfyJS.Init("你的帳號名稱");
+ComfyJS.Init("winsyi");
