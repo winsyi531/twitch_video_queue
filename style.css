@@ -1,0 +1,16 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: transparent; /* 重要：讓 OBS 抓取時背景透明 */
+}
+
+#player {
+    width: 320px;  /* 影片寬度 */
+    height: 180px; /* 影片高度 */
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-radius: 8px; /* 圓角效果（可選） */
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
