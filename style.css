@@ -47,6 +47,11 @@ th, td {
     text-align: left;
     font-size: 14px;
 }
+/* 讓時間欄位寬度固定 */
+th:nth-child(1), td:nth-child(1) {
+    width: 60px;
+    text-align: center;
+}
 
 tr:hover { background: #2a2a2a; cursor: pointer; }
 
