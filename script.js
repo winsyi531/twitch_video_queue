@@ -96,4 +96,11 @@ document.getElementById("clearList").onclick = () => {
     renderQueue();
 };
 
-ComfyJS.Init("winsyi");
+window.onload = () => {
+    try {
+        ComfyJS.Init("winsyi");
+        console.log("Twitch Chat 連線成功！");
+    } catch (e) {
+        console.error("連線失敗:", e);
+    }
+};
