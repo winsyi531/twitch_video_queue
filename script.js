@@ -33,18 +33,22 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
 
 // 加入清單
 function addToQueue(videoId, sender) {
+    const now = new Date();
+    const timeString = now.getHours().toString().padStart(2, '0') + ":" + 
+                       now.getMinutes().toString().padStart(2, '0');
+
     const videoData = {
         id: videoId,
+        time: timeString, // 新增時間欄位
         title: `${sender}`,
         url: `https://youtu.be/${videoId}`
     };
+    
     queue.push(videoData);
     renderQueue();
 
-    // 修正：增加 player 是否存在的檢查
     if (isAutoMode && player && typeof player.getPlayerState === "function") {
         const state = player.getPlayerState();
-        // 如果目前不在播放中 (不在 PLAYING=1 或 BUFFERING=3 狀態)，且是第一首歌
         if (state !== 1 && state !== 3 && currentVideoIndex === -1) {
             playNext();
         }
@@ -57,7 +61,12 @@ function renderQueue() {
     tbody.innerHTML = "";
     queue.forEach((item, index) => {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${item.title}</td><td>${item.id}</td>`;
+        // 增加時間欄位顯示
+        tr.innerHTML = `
+            <td style="color: #888;">${item.time}</td>
+            <td>${item.title}</td>
+            <td style="font-family: monospace; font-size: 12px;">${item.id}</td>
+        `;
         tr.onclick = () => playVideo(index);
         if (index === currentVideoIndex) tr.style.backgroundColor = "#444";
         tbody.appendChild(tr);
