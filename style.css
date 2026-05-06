@@ -2,24 +2,27 @@
     --bg-dark: #121212;
     --card-bg: #1e1e1e;
     --border-color: #333;
-    --accent: #9146ff; /* Twitch 紫色 */
+    --accent: #9146ff;
     --text-main: #e0e0e0;
     --text-dim: #888;
+    --danger: #d9534f;
+    --success: #5cb85c;
 }
 
 body {
     background-color: var(--bg-dark);
     color: var(--text-main);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
     display: flex;
     flex-direction: column;
     height: 100vh;
 }
 
-/* 導覽列 */
+/* 導覽列優化 */
 .top-nav {
-    padding: 15px 25px;
+    padding: 0 25px;
+    height: 60px;
     background: #000;
     display: flex;
     justify-content: space-between;
@@ -27,68 +30,110 @@ body {
     border-bottom: 1px solid var(--border-color);
 }
 
-.logo { font-size: 20px; font-weight: bold; }
-.logo span { font-size: 12px; color: var(--text-dim); margin-left: 10px; }
+.logo { font-size: 18px; font-weight: 600; }
+.logo span { font-size: 12px; color: var(--text-dim); margin-left: 12px; font-weight: normal; }
 
-/* 主佈局 */
+/* 主佈局間距 */
 .main-layout {
     display: flex;
     flex: 1;
     overflow: hidden;
-    padding: 20px;
-    gap: 20px;
+    padding: 24px;
+    gap: 24px;
 }
 
-.queue-section { flex: 2; display: flex; }
-.monitor-section { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+.queue-section { flex: 1.5; display: flex; min-width: 600px; }
+.monitor-section { flex: 1; display: flex; flex-direction: column; gap: 24px; min-width: 400px; }
 
-/* 卡片設計 */
+/* 卡片與內容對齊 */
 .card {
     background: var(--card-bg);
-    border-radius: 8px;
+    border-radius: 12px;
     border: 1px solid var(--border-color);
-    width: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .card-header {
-    padding: 15px;
+    padding: 16px 20px;
+    background: #252525;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-/* 表格樣式 */
-.list-container { flex: 1; overflow-y: auto; }
-table { width: 100%; border-collapse: collapse; }
-th { text-align: left; padding: 12px; background: #252525; color: var(--text-dim); }
-td { padding: 12px; border-bottom: 1px solid #2a2a2a; }
-tr:hover { background: #2a2a2a; cursor: pointer; }
+.card-header h3 { margin: 0; font-size: 16px; }
 
-/* 播放器容器 */
-.video-card { aspect-ratio: 16/9; background: #000; }
-#player { width: 100%; height: 100%; }
+/* 表格對齊核心邏輯 */
+.list-container { flex: 1; overflow-y: auto; background: var(--card-bg); }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; /* 重要：固定佈局 */ }
 
-/* 底部設定區 */
+th {
+    background: #2a2a2a;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* 文字過長顯示省略號 */
+}
+
+/* 指定每一欄的寬度比例 */
+th:nth-child(1), td:nth-child(1) { width: 80px; text-align: center; color: var(--text-dim); } /* 時間 */
+th:nth-child(2), td:nth-child(2) { width: auto; } /* 提供者 */
+th:nth-child(3), td:nth-child(3) { width: 150px; font-family: monospace; color: var(--accent); } /* 影片 ID */
+
+tr:hover { background: #2a2a2a; }
+tr.playing { background: rgba(145, 70, 255, 0.1); border-left: 4px solid var(--accent); }
+
+/* 底部設定列對齊 */
 .settings-bar {
     background: #000;
-    padding: 15px 25px;
+    padding: 12px 25px;
     border-top: 1px solid var(--border-color);
     display: flex;
-    gap: 30px;
+    align-items: center;
+    gap: 40px;
+}
+
+.setting-item { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.setting-item label { color: var(--text-dim); }
+.setting-item input { 
+    background: #222; 
+    border: 1px solid #444; 
+    color: white; 
+    padding: 4px 8px; 
+    border-radius: 4px;
 }
 
 /* 按鈕美化 */
 button {
-    padding: 6px 15px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    background: #333;
-    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
 }
-.btn-primary { background: var(--accent); }
-.btn-danger { background: #d9534f; }
-#toggleAuto.on { background: #5cb85c; }
+
+.btn-danger:hover { background: #c9302c; }
+.btn-primary:hover { filter: brightness(1.1); }
+#toggleAuto.on { background: var(--success); color: white; }
+
+.empty-msg {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+}
