@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Video Queue - 實況影片管理</title>
+    <title>Video Queue - 實況管理後台</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
 </head>
@@ -17,8 +17,8 @@
         <section class="queue-section">
             <div class="card">
                 <div class="card-header">
-                    <h3>等待佇列 <span id="queueCount">0</span></h3>
-                    <button id="clearList" class="btn-danger">清空</button>
+                    <h3>等待佇列 (<span id="queueCount">0</span>)</h3>
+                    <button id="clearList" class="btn-danger">清空清單</button>
                 </div>
                 <div class="list-container">
                     <table id="playlist">
@@ -36,7 +36,7 @@
             </div>
         </section>
 
-        <!-- 右側：即時播放與聊天監控 -->
+        <!-- 右側：監控區 -->
         <aside class="monitor-section">
             <div class="card video-card">
                 <div id="player"></div>
@@ -48,10 +48,10 @@
         </aside>
     </div>
 
-    <!-- 底部：設定區 -->
+    <!-- 底部設定 -->
     <footer class="settings-bar">
         <div class="setting-item">
-            <label>Auto 模式</label>
+            <label>自動播放</label>
             <button id="toggleAuto">OFF</button>
         </div>
         <div class="setting-item">
