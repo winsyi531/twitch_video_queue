@@ -24,7 +24,10 @@ function onPlayerStateChange(event) {
 
 // 監聽 Twitch 聊天室
 ComfyJS.onChat = (user, message, flags, self, extra) => {
-    const match = message.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    // 強效版 Regex：專門對付帶參數的 YouTube 網址
+    const ytRegex = /(?:v=|be\/|embed\/)([a-zA-Z0-9_-]{11})/;
+    const match = message.match(ytRegex);
+
     if (match) {
         const videoId = match[1];
         addToQueue(videoId, user);
@@ -103,6 +106,17 @@ document.getElementById("clearList").onclick = () => {
     currentVideoIndex = -1;
     player.stopVideo();
     renderQueue();
+};
+
+document.getElementById("fixPlayer").onclick = () => {
+    // 1. 隨便播放一個短片再停掉，騙過瀏覽器權限
+    player.cueVideoById('tgbNymZ7vqY'); // 隨便一個 ID
+    
+    // 2. 重新連線 Twitch
+    ComfyJS.Disconnect();
+    ComfyJS.Init("winsyi");
+    
+    alert("播放器已解鎖並重新連接聊天室！");
 };
 
 window.onload = () => {
