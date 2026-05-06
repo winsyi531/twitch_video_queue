@@ -3,29 +3,23 @@ let queue = [];
 let isAutoMode = false;
 let currentVideoIndex = -1;
 
-// 初始化 YouTube 播放器
+// 初始化 YouTube
 function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
-        height: '100%',
-        width: '100%',
-        events: {
-            'onStateChange': onPlayerStateChange
-        }
+        events: { 'onStateChange': onPlayerStateChange }
     });
 }
 
-// 監聽播放狀態
 function onPlayerStateChange(event) {
-    // 當影片結束 (YT.PlayerState.ENDED = 0)
-    if (event.data === 0 && isAutoMode) {
+    if (event.data === YT.PlayerState.ENDED && isAutoMode) {
         playNext();
     }
 }
 
-// 監聽 Twitch 聊天室
+// 監聽聊天室
 ComfyJS.onChat = (user, message, flags, self, extra) => {
-    // 強效版 Regex：專門對付帶參數的 YouTube 網址
-    const ytRegex = /(?:v=|be\/|embed\/)([a-zA-Z0-9_-]{11})/;
+    // 改進後的 Regex，支援多種 YT 網址格式
+    const ytRegex = /(?:v=|be\/|embed\/|v%3D)([a-zA-Z0-9_-]{11})/;
     const match = message.match(ytRegex);
 
     if (match) {
@@ -34,105 +28,79 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
     }
 };
 
-// 加入清單
 function addToQueue(videoId, sender) {
-    const now = new Date();
-    const timeString = now.getHours().toString().padStart(2, '0') + ":" + 
-                       now.getMinutes().toString().padStart(2, '0');
-
-    const videoData = {
-        id: videoId,
-        time: timeString, // 新增時間欄位
-        title: `${sender}`,
-        url: `https://youtu.be/${videoId}`
-    };
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    queue.push({ id: videoId, sender, time });
     
-    queue.push(videoData);
-    renderQueue();
+    updateUI();
 
-    if (isAutoMode && player && typeof player.getPlayerState === "function") {
-        const state = player.getPlayerState();
-        if (state !== 1 && state !== 3 && currentVideoIndex === -1) {
+    if (isAutoMode && player && player.getPlayerState) {
+        if (player.getPlayerState() !== 1 && currentVideoIndex === -1) {
             playNext();
         }
     }
 }
 
-// 渲染畫面上的清單
-function renderQueue() {
+function updateUI() {
     const tbody = document.getElementById("queueBody");
+    const emptyState = document.getElementById("emptyState");
+    const count = document.getElementById("queueCount");
+
+    count.innerText = queue.length;
     tbody.innerHTML = "";
-    queue.forEach((item, index) => {
-        const tr = document.createElement("tr");
-        tr.style.cursor = "pointer"; // 讓滑鼠移上去有手指符號
-        
-        tr.innerHTML = `
-            <td style="color: #888; width: 60px; text-align: center;">${item.time}</td>
-            <td>${item.title}</td>
-            <td style="font-family: monospace; color: #aaa;">${item.id}</td>
-        `;
-        
-        // 點擊整行播放
-        tr.onclick = () => {
-            console.log("嘗試播放:", item.id);
-            playVideo(index);
-        };
-
-        if (index === currentVideoIndex) {
-            tr.style.backgroundColor = "#444";
-        }
-        tbody.appendChild(tr);
-    });
-}
-
-// 播放指定索引的影片
-function playVideo(index) {
-    // 這邊你已經加了檢查，非常好！
-    if (!player || typeof player.loadVideoById !== "function") {
-        console.warn("播放器準備中...");
-        return;
+    
+    if (queue.length === 0) {
+        emptyState.style.display = "block";
+    } else {
+        emptyState.style.display = "none";
+        queue.forEach((item, index) => {
+            const tr = document.createElement("tr");
+            if (index === currentVideoIndex) tr.className = "playing";
+            tr.innerHTML = `<td>${item.time}</td><td>${item.sender}</td><td>${item.id}</td>`;
+            tr.onclick = () => playVideo(index);
+            tbody.appendChild(tr);
+        });
     }
-    currentVideoIndex = index;
-    player.loadVideoById(queue[index].id);
-    renderQueue();
 }
 
-// 播放下一首
+function playVideo(index) {
+    if (!player || typeof player.loadVideoById !== "function") return;
+    
+    currentVideoIndex = index;
+    const video = queue[index];
+    player.loadVideoById(video.id);
+    document.getElementById("nowPlayingTitle").innerText = `正在播放：${video.id} (提供者: ${video.sender})`;
+    updateUI();
+}
+
 function playNext() {
     if (currentVideoIndex + 1 < queue.length) {
         playVideo(currentVideoIndex + 1);
     }
 }
 
-// 控制按鈕
-document.getElementById("toggleAuto").onclick = () => {
+// 事件綁定
+document.getElementById("toggleAuto").onclick = function() {
     isAutoMode = !isAutoMode;
-    document.getElementById("autoStatus").innerText = isAutoMode ? "ON" : "OFF";
+    this.innerText = isAutoMode ? "ON" : "OFF";
+    this.className = isAutoMode ? "on" : "";
 };
 
 document.getElementById("clearList").onclick = () => {
     queue = [];
     currentVideoIndex = -1;
     player.stopVideo();
-    renderQueue();
+    document.getElementById("nowPlayingTitle").innerText = "目前沒有播放中的影片";
+    updateUI();
 };
 
 document.getElementById("fixPlayer").onclick = () => {
-    // 1. 隨便播放一個短片再停掉，騙過瀏覽器權限
-    player.cueVideoById('tgbNymZ7vqY'); // 隨便一個 ID
-    
-    // 2. 重新連線 Twitch
+    // 透過點擊按鈕來解鎖瀏覽器的 Autoplay 限制
+    player.cueVideoById('tgbNymZ7vqY');
     ComfyJS.Disconnect();
-    ComfyJS.Init("winsyi");
-    
-    alert("播放器已解鎖並重新連接聊天室！");
+    ComfyJS.Init(document.getElementById("channelName").value);
+    alert("已重新初始化並解鎖播放權限！");
 };
 
-window.onload = () => {
-    try {
-        ComfyJS.Init("winsyi");
-        console.log("Twitch Chat 連線成功！");
-    } catch (e) {
-        console.error("連線失敗:", e);
-    }
-};
+// 初始啟動
+ComfyJS.Init("winsyi");

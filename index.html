@@ -2,38 +2,63 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Twitch YT Manager</title>
+    <title>Video Queue - 實況影片管理</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
 </head>
 <body class="dark-theme">
-    <div class="container">
-        <!-- 左側：清單管理區 -->
-        <div class="sidebar">
-            <div class="controls">
-                <button id="toggleAuto">Auto 模式: <span id="autoStatus">OFF</span></button>
-                <button id="clearList">清空清單</button>
-                <button id="fixPlayer">重置播放器</button>
-            </div>
-            <table id="playlist">
-                <thead>
-                    <tr>
-                        <th>時間 (Time)</th>
-                        <th>提供者 (Provider)</th>
-                        <th>連結 (Link)</th>
-                    </tr>
-                </thead>
-                <tbody id="queueBody">
-                    <!-- 點播影片會出現在這裡 -->
-                </tbody>
-            </table>
-        </div>
+    <header class="top-nav">
+        <div class="logo">Video Queue <span>管理 YouTube 影片序列</span></div>
+        <button id="fixPlayer" class="btn-primary">重置播放器 (解鎖自動播放)</button>
+    </header>
 
-        <!-- 右側：影片播放區 -->
-        <div class="main-content">
-            <div id="player"></div>
-        </div>
+    <div class="main-layout">
+        <!-- 左側：影片佇列區 -->
+        <section class="queue-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>等待佇列 <span id="queueCount">0</span></h3>
+                    <button id="clearList" class="btn-danger">清空</button>
+                </div>
+                <div class="list-container">
+                    <table id="playlist">
+                        <thead>
+                            <tr>
+                                <th>時間</th>
+                                <th>提供者</th>
+                                <th>影片 ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queueBody"></tbody>
+                    </table>
+                    <div id="emptyState" class="empty-msg">佇列為空，請從聊天室貼上連結</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右側：即時播放與聊天監控 -->
+        <aside class="monitor-section">
+            <div class="card video-card">
+                <div id="player"></div>
+            </div>
+            <div class="card status-card">
+                <h3>正在播放</h3>
+                <div id="nowPlayingTitle">目前沒有播放中的影片</div>
+            </div>
+        </aside>
     </div>
+
+    <!-- 底部：設定區 -->
+    <footer class="settings-bar">
+        <div class="setting-item">
+            <label>Auto 模式</label>
+            <button id="toggleAuto">OFF</button>
+        </div>
+        <div class="setting-item">
+            <label>預設頻道</label>
+            <input type="text" id="channelName" value="winsyi">
+        </div>
+    </footer>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="script.js"></script>
