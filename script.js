@@ -64,14 +64,23 @@ function renderQueue() {
     tbody.innerHTML = "";
     queue.forEach((item, index) => {
         const tr = document.createElement("tr");
-        // 增加時間欄位顯示
+        tr.style.cursor = "pointer"; // 讓滑鼠移上去有手指符號
+        
         tr.innerHTML = `
-            <td style="color: #888;">${item.time}</td>
+            <td style="color: #888; width: 60px; text-align: center;">${item.time}</td>
             <td>${item.title}</td>
-            <td style="font-family: monospace; font-size: 12px;">${item.id}</td>
+            <td style="font-family: monospace; color: #aaa;">${item.id}</td>
         `;
-        tr.onclick = () => playVideo(index);
-        if (index === currentVideoIndex) tr.style.backgroundColor = "#444";
+        
+        // 點擊整行播放
+        tr.onclick = () => {
+            console.log("嘗試播放:", item.id);
+            playVideo(index);
+        };
+
+        if (index === currentVideoIndex) {
+            tr.style.backgroundColor = "#444";
+        }
         tbody.appendChild(tr);
     });
 }
