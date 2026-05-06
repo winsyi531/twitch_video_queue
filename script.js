@@ -35,15 +35,19 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
 function addToQueue(videoId, sender) {
     const videoData = {
         id: videoId,
-        title: `${sender}`, // 註：前端抓不到真實標題需後端，這裡先顯示來源
+        title: `${sender}`,
         url: `https://youtu.be/${videoId}`
     };
     queue.push(videoData);
     renderQueue();
 
-    // 如果是 Auto 模式且目前沒在播，就直接播
-    if (isAutoMode && player && player.getPlayerState() !== 1) {
-        if (currentVideoIndex === -1) playNext();
+    // 修正：增加 player 是否存在的檢查
+    if (isAutoMode && player && typeof player.getPlayerState === "function") {
+        const state = player.getPlayerState();
+        // 如果目前不在播放中 (不在 PLAYING=1 或 BUFFERING=3 狀態)，且是第一首歌
+        if (state !== 1 && state !== 3 && currentVideoIndex === -1) {
+            playNext();
+        }
     }
 }
 
@@ -62,9 +66,9 @@ function renderQueue() {
 
 // 播放指定索引的影片
 function playVideo(index) {
+    // 這邊你已經加了檢查，非常好！
     if (!player || typeof player.loadVideoById !== "function") {
-        console.error("YouTube 播放器尚未準備就緒，請稍候。");
-        alert("播放器還在載入中，請稍等幾秒！");
+        console.warn("播放器準備中...");
         return;
     }
     currentVideoIndex = index;
