@@ -105,4 +105,11 @@ document.getElementById("fixPlayer").onclick = () => {
     alert("已重新連線並解鎖播放權限！");
 };
 
+// 網頁載入時，初始化自動播放按鈕的視覺狀態
+const toggleBtn = document.getElementById("toggleAuto");
+if (toggleBtn) {
+    toggleBtn.innerText = "ON";
+    toggleBtn.className = "on";
+}
+
 ComfyJS.Init("winsyi");
