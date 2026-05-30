@@ -68,10 +68,11 @@ function playVideo(index) {
     player.loadVideoById(video.id);
 
     document.getElementById("nowPlayingTitle").innerHTML = `
-        <div>
-            <span style="color: #888; font-size: 14px;">正在播放</span><br>
-            <strong style="color: #9146ff; font-size: 18px;">${video.id}</strong><br>
-            <span style="font-size: 14px;">(來自: ${video.sender})</span>
+        <div style="font-size: 14px; width: 100%; text-align: center; line-height: 1.5;">
+            <span style="color: #888;">來自:</span> 
+            <strong style="color: #fff; margin-right: 15px;">${video.sender}</strong>
+            <span style="color: #888;">ID:</span> 
+            <strong style="color: #9146ff; font-family: monospace;">${video.id}</strong>
         </div>
     `;
     updateUI();
