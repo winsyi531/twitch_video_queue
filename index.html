@@ -13,7 +13,18 @@
     </header>
 
     <div class="main-layout">
-        <!-- 左側：影片佇列區 -->
+        <!-- 左側：監控區 -->
+        <aside class="monitor-section">
+            <div class="card video-card">
+                <div id="player"></div>
+            </div>
+            <div class="card status-card">
+                <h3>正在播放</h3>
+                <div id="nowPlayingTitle">目前沒有播放中的影片</div>
+            </div>
+        </aside>
+        
+        <!-- 右側：影片佇列區 -->
         <section class="queue-section">
             <div class="card">
                 <div class="card-header">
@@ -36,16 +47,6 @@
             </div>
         </section>
 
-        <!-- 右側：監控區 -->
-        <aside class="monitor-section">
-            <div class="card video-card">
-                <div id="player"></div>
-            </div>
-            <div class="card status-card">
-                <h3>正在播放</h3>
-                <div id="nowPlayingTitle">目前沒有播放中的影片</div>
-            </div>
-        </aside>
     </div>
 
     <!-- 底部設定 -->
