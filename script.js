@@ -31,7 +31,11 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
 
 function addToQueue(videoId, sender) {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    queue.push({ id: videoId, sender, time });
+    // 建立標準的完整 YouTube 影片連結
+    const fullUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    
+    // 將 url 一併存入佇列物件中
+    queue.push({ id: videoId, sender, time, url: fullUrl });
     updateUI();
 
     if (isAutoMode && player && player.getPlayerState) {
@@ -67,15 +71,38 @@ function playVideo(index) {
     const video = queue[index];
     player.loadVideoById(video.id);
 
+    // 更新左下角資訊：改為顯示連結、加入點擊複製功能、以及動態提示字眼
     document.getElementById("nowPlayingTitle").innerHTML = `
-        <div style="font-size: 14px; width: 100%; text-align: center; line-height: 1.5;">
-            <span style="color: #888;">來自:</span> 
-            <strong style="color: #fff; margin-right: 15px;">${video.sender}</strong>
-            <span style="color: #888;">ID:</span> 
-            <strong style="color: #9146ff; font-family: monospace;">${video.id}</strong>
+        <div style="font-size: 14px; width: 100%; text-align: center; line-height: 1.5; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; align-items: center;">
+            <div><span style="color: #888;">來自:</span> <strong style="color: #fff;">${video.sender}</strong></div>
+            <div style="position: relative; display: inline-block;">
+                <span style="color: #888;">連結:</span> 
+                <span id="copyTarget" 
+                      onclick="copyTextToClipboard('${video.url}')" 
+                      style="color: #9146ff; font-family: monospace; cursor: pointer; text-decoration: underline; word-break: break-all; margin-right: 5px;" 
+                      title="點擊複製連結">
+                    ${video.url}
+                </span>
+                <span id="copyTooltip" style="color: #5cb85c; font-weight: bold; display: none; font-size: 12px;">(已複製!)</span>
+            </div>
         </div>
     `;
     updateUI();
+}
+
+// 複製功能與提示處理
+function copyTextToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const tooltip = document.getElementById("copyTooltip");
+        if (tooltip) {
+            tooltip.style.display = "inline"; // 顯示「(已複製!)」
+            setTimeout(() => {
+                tooltip.style.display = "none"; // 2 秒後自動隱藏
+            }, 2000);
+        }
+    }).catch(err => {
+        console.error('無法複製連結: ', err);
+    });
 }
 
 function playNext() {
