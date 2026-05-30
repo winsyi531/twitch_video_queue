@@ -55,6 +55,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    min-height: 0;
 }
 /* 卡片 */
 .card {
@@ -106,9 +107,8 @@ tr.playing { background: rgba(145, 70, 255, 0.1); border-left: 4px solid var(--a
 
 /* 正在播放區塊 (修正版) */
 .video-card {
-    flex: 0 0 65%;
-    background: #000;
-    min-height: 500px;
+    aspect-ratio: 16 / 9;
+    width: 100%;
 }
 
 #player,
@@ -119,8 +119,6 @@ tr.playing { background: rgba(145, 70, 255, 0.1); border-left: 4px solid var(--a
 
 .status-card {
     flex: 0 0 180px;
-    display: flex;
-    flex-direction: column;
 }
 .status-card h3 { 
     padding: 12px 20px; margin: 0; font-size: 14px; color: var(--text-dim); 
