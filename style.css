@@ -44,7 +44,7 @@ body {
 }
 
 .queue-section { flex: 1; display: flex; min-width: 380px; }
-.monitor-section { flex: 1.5; display: flex; flex-direction: column; gap: 24px; min-width: 500px; }
+.monitor-section { flex: 1.3; display: flex; flex-direction: column; gap: 24px; min-width: 400px; }
 
 /* 卡片 */
 .card {
