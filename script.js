@@ -1,6 +1,6 @@
 let player;
 let queue = [];
-let isAutoMode = false;
+let isAutoMode = true;
 let currentVideoIndex = -1;
 
 // YouTube API
