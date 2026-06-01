@@ -13,28 +13,25 @@
     </header>
 
     <div class="main-layout">
-        <!-- 左側：監控區 -->
         <aside class="monitor-section">
-            <div class="card video-card">
-                <div class="obs-player-container">
-                    <div id="obs-id-bar">
-                        <span class="obs-tag">NOW PLAYING</span>
-                        <span id="obs-video-id">等待影片中...</span>
-                    </div>
-                    
-                    <div class="obs-progress-container">
-                        <div id="obs-progress-bar"></div>
-                    </div>
-                    
-                    <div id="player"></div>
+            <div class="obs-player-container">
+                <div id="obs-id-bar">
+                    <span class="obs-tag" id="obs-video-id">等待影片中...</span>
                 </div>
+                
+                <div class="obs-progress-container">
+                    <div id="obs-progress-bar"></div>
+                </div>
+                
+                <div id="player"></div>
             </div>
+
             <div class="card status-card">
                 <h3>正在播放</h3>
                 <div id="nowPlayingTitle">目前沒有播放中的影片</div>
             </div>
         </aside>
-        <!-- 右側：影片佇列區 -->
+
         <section class="queue-section">
             <div class="card">
                 <div class="card-header">
@@ -58,7 +55,6 @@
         </section>
     </div>
 
-    <!-- 底部設定 -->
     <footer class="settings-bar">
         <div class="setting-item">
             <label>自動播放</label>
