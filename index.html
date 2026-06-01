@@ -16,7 +16,18 @@
         <!-- 左側：監控區 -->
         <aside class="monitor-section">
             <div class="card video-card">
-                <div id="player"></div>
+                <div class="obs-player-container">
+                    <div id="obs-id-bar">
+                        <span class="obs-tag">NOW PLAYING</span>
+                        <span id="obs-video-id">等待影片中...</span>
+                    </div>
+                    
+                    <div class="obs-progress-container">
+                        <div id="obs-progress-bar"></div>
+                    </div>
+                    
+                    <div id="player"></div>
+                </div>
             </div>
             <div class="card status-card">
                 <h3>正在播放</h3>
