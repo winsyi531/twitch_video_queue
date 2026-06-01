@@ -9,7 +9,7 @@ function onYouTubeIframeAPIReady() {
         height: '100%',
         width: '100%',
         playerVars: {
-            'controls': 0, // 隱藏 YouTube 原始的播放控制列與進度條
+            'controls': 1, // 隱藏 YouTube 原始的播放控制列與進度條
             'rel': 0       // 結束時不顯示相關影片
         },
         events: { 'onStateChange': onPlayerStateChange }
