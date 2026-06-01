@@ -124,3 +124,82 @@ button { padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointe
 .btn-danger { background: var(--danger); }
 #toggleAuto.on { background: var(--success); }
 .empty-msg { padding: 40px; text-align: center; color: var(--text-dim); }
+
+/* OBS 播放器外殼（16:9 比例鎖定） */
+.obs-player-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: #000;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* 1. 最上方 ID 列：科技黑外殼 + 霓虹紫字體 */
+#obs-id-bar {
+    background: linear-gradient(90deg, #1a1a1a 0%, #0a0a0a 100%);
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #222;
+}
+
+/* 「NOW PLAYING」小標籤 */
+.obs-tag {
+    background: #9146ff;
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-shadow: 0 0 5px rgba(145, 70, 255, 0.8);
+}
+
+#obs-video-id {
+    font-family: 'Courier New', Courier, monospace;
+    color: #a970ff;
+}
+
+/* 2. 中間進度條外殼 */
+.obs-progress-container {
+    width: 100%;
+    height: 4px;      /* 進度條粗細 */
+    background: #222; /* 未播放部分的顏色 */
+    position: relative;
+}
+
+/* 進度條主體：紫色漸層 + 發光效果 */
+#obs-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #9146ff, #bf94ff);
+    box-shadow: 0 0 8px #9146ff;
+    transition: width 0.3s linear; /* 讓移動看起來更平滑 */
+}
+
+/* 3. 下方影片：填滿剩餘空間 */
+#player {
+    flex: 1;
+    aspect-ratio: 16/9;
+}
+
+/* =======================================
+   OBS 專用隱藏模式
+   當你在 OBS 的自訂 CSS 加上 .obs-mode 時，會切換為純淨畫面
+   ======================================= */
+body.obs-mode .top-nav,
+body.obs-mode .status-card,
+body.obs-mode .queue-section,
+body.obs-mode .settings-bar {
+    display: none !important;
+}
+
+body.obs-mode .main-layout { padding: 0; gap: 0; }
+body.obs-mode .monitor-section { width: 100vw; height: 100vh; min-width: 100%; gap: 0; }
+body.obs-mode .video-card { border-radius: 0; border: none; height: 100vh; background: transparent; }
+body.obs-mode .obs-player-container { border-radius: 0; box-shadow: none; height: 100vh; }
