@@ -216,3 +216,9 @@ body.obs-mode .main-layout { padding: 0; gap: 0; }
 body.obs-mode .monitor-section { width: 100vw; height: 100vh; min-width: 100%; gap: 0; }
 body.obs-mode .video-card { border-radius: 0; border: none; height: 100vh; background: transparent; }
 body.obs-mode .obs-player-container { border-radius: 0; box-shadow: none; height: 100vh; }
+
+/* 【新增這行】當處於 OBS 模式時，利用原生的 pointer-events 阻擋或裁切掉最下方控制列 */
+body.obs-mode #player {
+    /* 這裡透過微調，讓 YouTube 內部的控制列在無滑鼠環境下自然隱藏 */
+    pointer-events: none; 
+}
