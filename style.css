@@ -123,30 +123,31 @@ tr.playing { background: rgba(145, 70, 255, 0.1); border-left: 4px solid var(--a
 #obs-id-bar {
     background: linear-gradient(90deg, #1a1a1a 0%, #0a0a0a 100%);
     color: #fff;
-    padding: 10px 16px;
+    padding: 14px 20px; /* 增加上下內距，讓大字體不擁擠 */
     display: flex;
     align-items: center;
-    border-bottom: 1px solid #222;
+    border-bottom: 2px solid #222; /* 稍微加粗分界線 */
 }
 
 /* 提供者專用紫色膠囊標籤 */
 .obs-tag {
     background: #9146ff;
     color: #fff;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 4px 10px;
-    border-radius: 4px;
-    text-shadow: 0 0 5px rgba(145, 70, 255, 0.8);
-    letter-spacing: 0.5px;
+    font-size: 24px;         /* 從 13px 大幅放大到 24px，實況上超清晰 */
+    font-weight: 800;        /* 更加粗體 */
+    padding: 6px 16px;       /* 增大膠囊外框 */
+    border-radius: 6px;
+    text-shadow: 0 0 8px rgba(145, 70, 255, 0.9); /* 霓虹發光感增強 */
+    letter-spacing: 1px;
 }
 
 /* 中間進度條外殼 */
 .obs-progress-container {
     width: 100%;
-    height: 4px;
+    height: 6px; 
     background: #222;
     position: relative;
+    z-index: 10;
 }
 
 /* 進度條主體：紫色漸層 + 發光 */
@@ -154,7 +155,7 @@ tr.playing { background: rgba(145, 70, 255, 0.1); border-left: 4px solid var(--a
     width: 0%;
     height: 100%;
     background: linear-gradient(90deg, #9146ff, #bf94ff);
-    box-shadow: 0 0 8px #9146ff;
+    box-shadow: 0 0 10px #9146ff;
     transition: width 0.3s linear;
 }
 
@@ -164,6 +165,8 @@ tr.playing { background: rgba(145, 70, 255, 0.1); border-left: 4px solid var(--a
     width: 100%;
     height: 100%;
     border: none;
+    aspect-ratio: 16/9;     /* 強制播放器元件維持 16:9 */
+    object-fit: cover;
 }
 
 /* 後台正在播放區塊 */
