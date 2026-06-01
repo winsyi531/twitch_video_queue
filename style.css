@@ -130,6 +130,7 @@ button { padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointe
     display: flex;
     flex-direction: column;
     width: 100%;
+    height: 100%; /* 確保填滿父層 */
     background: #000;
     overflow: hidden;
     border-radius: 8px;
@@ -185,7 +186,9 @@ button { padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointe
 /* 3. 下方影片：填滿剩餘空間 */
 #player {
     flex: 1;
-    aspect-ratio: 16/9;
+    width: 100%;
+    height: 100%;
+    border: none;
 }
 
 /* =======================================
