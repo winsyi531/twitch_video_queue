@@ -8,8 +8,15 @@ function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
         height: '100%',
         width: '100%',
+        playerVars: {
+            'controls': 0, // 隱藏 YouTube 原始的播放控制列、進度條
+            'rel': 0       // 結束時不顯示相關影片
+        },
         events: { 'onStateChange': onPlayerStateChange }
     });
+
+    // 每 0.5 秒檢查一次影片進度
+    setInterval(updateProgressBar, 500);
 }
 
 function onPlayerStateChange(event) {
@@ -71,7 +78,13 @@ function playVideo(index) {
     const video = queue[index];
     player.loadVideoById(video.id);
 
-    // 更新左下角資訊：改為顯示連結、加入點擊複製功能、以及動態提示字眼
+    // 同步更新 OBS 專用黃/紫標題列的文字
+    const obsIdElem = document.getElementById("obs-video-id");
+    if (obsIdElem) {
+        obsIdElem.innerText = video.id;
+    }
+
+    // 更新原本左下角的資訊
     document.getElementById("nowPlayingTitle").innerHTML = `
         <div style="font-size: 14px; width: 100%; text-align: center; line-height: 1.5; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; align-items: center;">
             <div><span style="color: #888;">來自:</span> <strong style="color: #fff;">${video.sender}</strong></div>
@@ -88,6 +101,20 @@ function playVideo(index) {
         </div>
     `;
     updateUI();
+}
+
+function updateProgressBar() {
+    if (player && typeof player.getCurrentTime === "function" && player.getPlayerState() === 1) {
+        const currentTime = player.getCurrentTime();
+        const duration = player.getDuration();
+        if (duration > 0) {
+            const progressPercent = (currentTime / duration) * 100;
+            const progressBar = document.getElementById("obs-progress-bar");
+            if (progressBar) {
+                progressBar.style.width = progressPercent + "%";
+            }
+        }
+    }
 }
 
 // 複製功能與提示處理
