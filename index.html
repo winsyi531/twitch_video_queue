@@ -20,7 +20,8 @@ button{background:var(--ac);color:#fff;border:0;font-weight:700;margin-top:20px;
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
 #out{margin-top:20px;padding:14px;border:1px dashed var(--ac);border-radius:8px;word-break:break-all;display:none}
 #stage{position:fixed;inset:0;opacity:0;pointer-events:none;transition:opacity .4s}
-#stage.on{opacity:1}
+#stage.on{opacity:1;pointer-events:auto}
+#snd{position:fixed;top:14px;right:14px;width:auto;margin:0;padding:8px 14px;border:0;border-radius:999px;background:rgba(0,0,0,.75);color:#fff;font-weight:700;cursor:pointer}
 #p{width:100%;height:100%;border:0}
 #tag{position:fixed;left:14px;bottom:14px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:18px;opacity:0;transition:opacity .4s}
 #tag.on{opacity:1}
@@ -82,6 +83,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 </div>
 <div id="stage"><div id="p"></div></div>
 <div id="tag"></div>
+<button id="snd" type="button" hidden>🔊 點一下開啟聲音</button>
 <div id="dbg" hidden></div>
 
 <script>
@@ -161,7 +163,7 @@ if (!ch) {
   const CFG = { reward: q.get('reward') || '', who: q.get('who') || 'all', max: +q.get('max') || 1200,
     cd: +q.get('cd') || 60, qmax: +q.get('qmax') || 20, debug: q.get('debug') === '1' };
   const queue = [], lastUse = {};
-  let player, ready = false, cur = null, timer = null;
+  let player, ready = false, cur = null, timer = null, kick = null;
   const bc = new BroadcastChannel('vq-' + ch), KEY = 'vq-state-' + ch;
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   try { const r = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -188,7 +190,7 @@ if (!ch) {
     else pub();
   };
   setInterval(pub, 1000);
-  const stage = document.getElementById('stage'), tag = document.getElementById('tag'), dbg = document.getElementById('dbg');
+  const stage = document.getElementById('stage'), tag = document.getElementById('tag'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
   const log = t => { if (!CFG.debug) return; dbg.hidden = false; dbg.textContent = (dbg.textContent + '\n' + t).split('\n').slice(-8).join('\n'); };
   const ROLE = { all: /./, sub: /subscriber|founder|vip|moderator|broadcaster/, vip: /vip|moderator|broadcaster/, mod: /moderator|broadcaster/ };
 
@@ -200,13 +202,21 @@ if (!ch) {
   }
   function render() {
     stage.classList.toggle('on', !!cur);
+    snd.hidden = !(cur && ready && player.isMuted());
     tag.classList.toggle('on', !!cur);
     if (cur) tag.textContent = '🎬 ' + cur.user + ' 點播' + (queue.length ? ' ・ 還有 ' + queue.length + ' 支' : '');
   }
   function show() {
     if (!ready) return;
-    if (cur) player.loadVideoById({ videoId: cur.id, startSeconds: cur.start });
-    else player.stopVideo();
+    clearTimeout(kick);
+    if (cur) {
+      player.loadVideoById({ videoId: cur.id, startSeconds: cur.start });
+      const id = cur.uid;
+      kick = setTimeout(() => {
+        const st = player.getPlayerState();
+        if (cur && cur.uid === id && (st === -1 || st === 5)) { player.mute(); player.playVideo(); render(); }
+      }, 2500);
+    } else player.stopVideo();
   }
   function advance() { clearTimeout(timer); timer = null; cur = queue.shift() || null; changed(); show(); }
 
@@ -239,6 +249,7 @@ if (!ch) {
         onReady: () => { ready = true; if (!cur && queue.length) advance(); else show(); },
         onStateChange: e => {
           if (e.data === 0) advance();
+          if (e.data === 1) render();
           if (e.data === 1 && !timer) timer = setTimeout(advance, CFG.max * 1000);
         },
         onError: () => advance()
@@ -246,6 +257,7 @@ if (!ch) {
   };
   const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(sc);
 
+  snd.onclick = () => { player.unMute(); player.playVideo(); render(); };
   function connect() {
     const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
     ws.onopen = () => {
