@@ -19,12 +19,15 @@ input,select,button{font:inherit;width:100%;padding:10px 12px;border-radius:8px;
 button{background:var(--ac);color:#fff;border:0;font-weight:700;margin-top:20px;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
 #out{margin-top:20px;padding:14px;border:1px dashed var(--ac);border-radius:8px;word-break:break-all;display:none}
-#stage{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(calc(100vw - 2*var(--pad)),calc((100vh - 2*var(--pad))*16/9));aspect-ratio:16/9;border:var(--fw) solid var(--fc);border-radius:var(--fr);background:#000;box-shadow:0 10px 40px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .4s}
+#stage{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(calc(100vw - 2*var(--pad)),calc((100vh - 2*var(--pad) - var(--hh) - 2*var(--fw))*16/9));display:flex;flex-direction:column;border:var(--fw) solid var(--fc);border-radius:var(--fr);background:var(--fc);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .4s}
 #stage.on{opacity:1;pointer-events:auto}
-#snd{position:fixed;top:14px;right:14px;width:auto;margin:0;padding:8px 14px;border:0;border-radius:999px;background:rgba(0,0,0,.75);color:#fff;font-weight:700;cursor:pointer}
-#p{width:100%;height:100%;border:0;border-radius:calc(var(--fr) - var(--fw))}
-#tag{position:absolute;left:24px;bottom:calc(-1*var(--fw) - 18px);padding:4px 16px;border-radius:999px;background:var(--fc);color:#0b1020;font:700 18px/1.5 system-ui,'Noto Sans TC',sans-serif;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.35)}
-:root{--fc:#7aa2ff;--fw:6px;--fr:20px;--pad:30px}
+#ctl{position:fixed;right:14px;bottom:8px;display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.75);color:#fff}
+#ctl input{width:120px;padding:0;margin:0}
+#snd{width:auto;margin:0;padding:2px 6px;border:0;background:transparent;color:#fff;font-weight:700;cursor:pointer}
+#p{display:block;width:100%;height:100%;border:0}
+#vid{aspect-ratio:16/9;background:#000}
+#bar{height:var(--hh);flex:none;display:flex;align-items:center;padding:0 18px;color:var(--ft);font:700 20px/1 system-ui,'Noto Sans TC',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root{--fc:#7aa2ff;--ft:#0b1020;--fw:6px;--fr:20px;--pad:48px;--hh:44px}
 #dbg{position:fixed;top:8px;left:8px;max-width:90%;padding:8px 10px;background:rgba(0,0,0,.8);color:#9f9;font:12px/1.5 monospace;white-space:pre-wrap}
 [hidden]{display:none!important}
 :root{--on:#fff}@media (prefers-color-scheme:dark){:root{--on:#0b1020}}
@@ -85,8 +88,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
   <div class="add"><input id="url" placeholder="貼上 YouTube 連結手動加入"><button id="addb" class="pri" type="button">加入</button></div>
   <button id="clr" type="button">清空待播</button>
 </div>
-<div id="stage"><div id="p"></div><div id="tag"></div></div>
-<button id="snd" type="button" hidden>🔊 點一下開啟聲音</button>
+<div id="stage"><div id="bar"></div><div id="vid"><div id="p"></div></div></div>
+<div id="ctl" hidden><button id="snd" type="button" hidden>🔊 點一下開啟聲音</button><input id="cv" type="range" min="0" max="100" aria-label="音量"></div>
 <div id="dbg" hidden></div>
 
 <script>
@@ -172,6 +175,15 @@ if (!ch) {
   let player, ready = false, cur = null, timer = null, kick = null;
   const bc = new BroadcastChannel('vq-' + ch), KEY = 'vq-state-' + ch;
   let vol = 50; try { const v = localStorage.getItem('vq-vol-' + ch); if (v !== null) vol = +v; } catch (e) {}
+  const inObs = !!window.obsstudio;
+  ctl.hidden = inObs; cv.value = vol;
+  function setVol(v) {
+    vol = Math.max(0, Math.min(100, v | 0)); cv.value = vol;
+    if (ready) player.setVolume(vol);
+    try { localStorage.setItem('vq-vol-' + ch, vol); } catch (e) {}
+    pub();
+  }
+  cv.oninput = e => setVol(+e.target.value);
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   try { const r = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (r && Date.now() - r.t < 6 * 3600e3) { if (r.cur) queue.push(r.cur); queue.push(...r.queue); } } catch (e) {}
@@ -193,12 +205,12 @@ if (!ch) {
     else if (m.cmd === 'now' && i > -1) { queue.unshift(queue.splice(i, 1)[0]); advance(); }
     else if (m.cmd === 'pause' && ready) player.pauseVideo();
     else if (m.cmd === 'resume' && ready) player.playVideo();
-    else if (m.cmd === 'vol') { vol = Math.max(0, Math.min(100, m.v | 0)); if (ready) player.setVolume(vol); try { localStorage.setItem('vq-vol-' + ch, vol); } catch (e) {} pub(); }
+    else if (m.cmd === 'vol') setVol(m.v);
     else if (m.cmd === 'add') { const v = parse(m.url || ''); if (v) { queue.push({ ...v, user: '主播', uid: uid() }); if (!cur) advance(); else changed(); } }
     else pub();
   };
   setInterval(pub, 1000);
-  const stage = document.getElementById('stage'), tag = document.getElementById('tag'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
+  const stage = document.getElementById('stage'), tag = document.getElementById('bar'), ctl = document.getElementById('ctl'), cv = document.getElementById('cv'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
   const log = t => { if (!CFG.debug) return; dbg.hidden = false; dbg.textContent = (dbg.textContent + '\n' + t).split('\n').slice(-8).join('\n'); };
   const ROLE = { all: /./, sub: /subscriber|founder|vip|moderator|broadcaster/, vip: /vip|moderator|broadcaster/, mod: /moderator|broadcaster/ };
 
@@ -211,7 +223,7 @@ if (!ch) {
   function render() {
     stage.classList.toggle('on', !!cur);
     snd.hidden = !(cur && ready && player.isMuted());
-    if (cur) tag.textContent = '🎬 ' + cur.user + ' 點播';
+    if (cur) tag.textContent = cur.user;
   }
   function show() {
     if (!ready) return;
@@ -221,7 +233,7 @@ if (!ch) {
       const id = cur.uid;
       kick = setTimeout(() => {
         const st = player.getPlayerState();
-        if (cur && cur.uid === id && (st === -1 || st === 5)) { player.mute(); player.playVideo(); render(); }
+        if (cur && cur.uid === id && (st === -1 || st === 5)) { if (!inObs) player.mute(); player.playVideo(); render(); }
       }, 2500);
     } else player.stopVideo();
   }
