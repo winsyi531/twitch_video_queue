@@ -1,72 +1,155 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <title>Video Queue - 實況管理後台</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twitch 影片點播</title>
+<style>
+:root{--bg:#f6f5f0;--fg:#1d1c26;--mut:#6a6878;--ac:#2f6bff;--card:#fff;--line:#d9d7e3}
+@media (prefers-color-scheme:dark){:root{--bg:#15161c;--fg:#ecebf3;--mut:#9795a8;--ac:#7aa2ff;--card:#1f2029;--line:#34354380}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+body.ov{background:transparent;overflow:hidden}
+#setup{max-width:640px;margin:0 auto;padding:32px 20px 60px}
+h1{font-size:1.6rem;margin:0 0 4px}
+p.sub{color:var(--mut);margin:0 0 24px}
+label{display:block;font-weight:600;margin:16px 0 4px}
+small{display:block;color:var(--mut);font-weight:400}
+input,select,button{font:inherit;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+button{background:var(--ac);color:#fff;border:0;font-weight:700;margin-top:20px;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+#out{margin-top:20px;padding:14px;border:1px dashed var(--ac);border-radius:8px;word-break:break-all;display:none}
+#stage{position:fixed;inset:0;opacity:0;pointer-events:none;transition:opacity .4s}
+#stage.on{opacity:1}
+#p{width:100%;height:100%;border:0}
+#tag{position:fixed;left:14px;bottom:14px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:18px;opacity:0;transition:opacity .4s}
+#tag.on{opacity:1}
+#dbg{position:fixed;top:8px;left:8px;max-width:90%;padding:8px 10px;background:rgba(0,0,0,.8);color:#9f9;font:12px/1.5 monospace;white-space:pre-wrap}
+</style>
 </head>
-<body class="dark-theme">
-    <header class="top-nav">
-        <div class="logo">Video Queue <span>管理 YouTube 影片序列</span></div>
-        <button id="fixPlayer" class="btn-primary">重置播放器 (解鎖自動播放)</button>
-    </header>
+<body>
+<div id="setup" hidden>
+  <h1>影片點播 Overlay 設定</h1>
+  <p class="sub">填完後複製產生的網址，貼到 OBS 的「瀏覽器」來源。</p>
+  <label for="f-ch">Twitch 頻道名稱</label>
+  <input id="f-ch" value="winsyi" autocomplete="off">
+  <label for="f-rw">頻道點數獎勵 ID（選填）<small>留空 = 任何「需要輸入文字」且含 YouTube 連結的兌換都接受。不知道 ID？先產生網址後加上 &amp;debug=1，兌換一次就會顯示。</small></label>
+  <input id="f-rw" autocomplete="off">
+  <label for="f-who">誰可以用 !vq</label>
+  <select id="f-who"><option value="all">所有人</option><option value="sub">訂閱者以上</option><option value="vip">VIP 以上</option><option value="mod">只有管理員</option></select>
+  <label for="f-max">每支影片最長播放秒數</label>
+  <input id="f-max" type="number" value="1200" min="10">
+  <label for="f-cd">每人 !vq 冷卻秒數</label>
+  <input id="f-cd" type="number" value="60" min="0">
+  <button id="gen" type="button">產生 OBS 網址</button>
+  <div id="out"></div>
+</div>
 
-    <div class="main-layout">
-        <aside class="monitor-section">
-            <div class="obs-player-container">
-                <div id="obs-id-bar">
-                    <span class="obs-tag" id="obs-video-id">等待影片中...</span>
-                </div>
-                
-                <div class="obs-progress-container">
-                    <div id="obs-progress-bar"></div>
-                </div>
-                
-                <div id="player"></div>
-            </div>
+<div id="stage"><div id="p"></div></div>
+<div id="tag"></div>
+<div id="dbg" hidden></div>
 
-            <div class="card status-card">
-                <h3>正在播放</h3>
-                <div id="nowPlayingTitle">目前沒有播放中的影片</div>
-            </div>
-        </aside>
+<script>
+const q = new URLSearchParams(location.search);
+const ch = q.get('setup') === '1' ? '' : (q.get('channel') || 'winsyi').toLowerCase().replace('#', '').trim();
 
-        <section class="queue-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3>等待佇列 (<span id="queueCount">0</span>)</h3>
-                    <button id="clearList" class="btn-danger">清空清單</button>
-                </div>
-                <div class="list-container">
-                    <table id="playlist">
-                        <thead>
-                            <tr>
-                                <th>時間</th>
-                                <th>提供者</th>
-                                <th>影片 ID</th>
-                            </tr>
-                        </thead>
-                        <tbody id="queueBody"></tbody>
-                    </table>
-                    <div id="emptyState" class="empty-msg">佇列為空，請從聊天室貼上連結</div>
-                </div>
-            </div>
-        </section>
-    </div>
+if (!ch) {
+  const s = document.getElementById('setup'); s.hidden = false;
+  document.getElementById('gen').onclick = () => {
+    const c = document.getElementById('f-ch').value.trim().toLowerCase().replace('#', '');
+    if (!c) { document.getElementById('f-ch').focus(); return; }
+    const p = new URLSearchParams({ channel: c, who: document.getElementById('f-who').value,
+      max: document.getElementById('f-max').value, cd: document.getElementById('f-cd').value });
+    const r = document.getElementById('f-rw').value.trim(); if (r) p.set('reward', r);
+    const o = document.getElementById('out'); o.style.display = 'block';
+    o.textContent = location.origin + location.pathname + '?' + p.toString();
+  };
+} else {
+  document.body.classList.add('ov');
+  const CFG = { reward: q.get('reward') || '', who: q.get('who') || 'all', max: +q.get('max') || 1200,
+    cd: +q.get('cd') || 60, qmax: +q.get('qmax') || 20, debug: q.get('debug') === '1' };
+  const queue = [], lastUse = {};
+  let player, ready = false, cur = null, timer = null;
+  const stage = document.getElementById('stage'), tag = document.getElementById('tag'), dbg = document.getElementById('dbg');
+  const log = t => { if (!CFG.debug) return; dbg.hidden = false; dbg.textContent = (dbg.textContent + '\n' + t).split('\n').slice(-8).join('\n'); };
+  const ROLE = { all: /./, sub: /subscriber|founder|vip|moderator|broadcaster/, vip: /vip|moderator|broadcaster/, mod: /moderator|broadcaster/ };
 
-    <footer class="settings-bar">
-        <div class="setting-item">
-            <label>自動播放</label>
-            <button id="toggleAuto">OFF</button>
-        </div>
-        <div class="setting-item">
-            <label>預設頻道</label>
-            <input type="text" id="channelName" value="winsyi">
-        </div>
-    </footer>
+  function parse(text) {
+    const m = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:\S*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/i);
+    if (!m) return null;
+    const t = text.match(/[?&#](?:t|start)=(\d+)/);
+    return { id: m[1], start: t ? +t[1] : 0 };
+  }
+  function render() {
+    stage.classList.toggle('on', !!cur);
+    tag.classList.toggle('on', !!cur);
+    if (cur) tag.textContent = '🎬 ' + cur.user + ' 點播' + (queue.length ? ' ・ 還有 ' + queue.length + ' 支' : '');
+  }
+  function show() {
+    if (!ready) return;
+    if (cur) player.loadVideoById({ videoId: cur.id, startSeconds: cur.start });
+    else player.stopVideo();
+  }
+  function advance() { clearTimeout(timer); timer = null; cur = queue.shift() || null; render(); show(); }
 
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="script.js"></script>
+  function onMsg(tags, user, text) {
+    const badges = tags.badges || '';
+    const isMod = /broadcaster|moderator/.test(badges);
+    const cmd = text.trim().split(/\s+/)[0].toLowerCase();
+    if (isMod && cmd === '!vskip') return advance();
+    if (isMod && cmd === '!vclear') { queue.length = 0; return advance(); }
+    const rid = tags['custom-reward-id'];
+    if (rid) log('reward id: ' + rid);
+    let ok = false;
+    if (rid) ok = !CFG.reward || rid === CFG.reward;
+    else if (cmd === '!vq') ok = ROLE[CFG.who].test(badges);
+    if (!ok) return;
+    const v = parse(text);
+    if (!v) return;
+    const now = Date.now();
+    if (!rid && !isMod && now - (lastUse[user] || 0) < CFG.cd * 1000) return;
+    if (queue.length >= CFG.qmax) return;
+    lastUse[user] = now;
+    queue.push({ ...v, user });
+    if (!cur) advance(); else render();
+  }
+
+  window.onYouTubeIframeAPIReady = () => {
+    player = new YT.Player('p', { width: '100%', height: '100%',
+      playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, modestbranding: 1, origin: location.origin },
+      events: {
+        onReady: () => { ready = true; show(); },
+        onStateChange: e => {
+          if (e.data === 0) advance();
+          if (e.data === 1 && !timer) timer = setTimeout(advance, CFG.max * 1000);
+        },
+        onError: () => advance()
+      } });
+  };
+  const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(sc);
+
+  function connect() {
+    const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+    ws.onopen = () => {
+      ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+      ws.send('PASS SCHMOOPIIE');
+      ws.send('NICK justinfan' + (10000 + Math.random() * 80000 | 0));
+      ws.send('JOIN #' + ch);
+      log('已連線 #' + ch);
+    };
+    ws.onmessage = e => e.data.split('\r\n').forEach(l => {
+      if (!l) return;
+      if (l.startsWith('PING')) return ws.send('PONG :tmi.twitch.tv');
+      const m = l.match(/^@(\S+) :(\w+)!\S+ PRIVMSG #\S+ :(.*)$/);
+      if (!m) return;
+      const tags = {};
+      m[1].split(';').forEach(p => { const i = p.indexOf('='); tags[p.slice(0, i)] = p.slice(i + 1); });
+      onMsg(tags, tags['display-name'] || m[2], m[3]);
+    });
+    ws.onclose = () => { log('斷線，3 秒後重連'); setTimeout(connect, 3000); };
+  }
+  connect();
+}
+</script>
 </body>
 </html>
