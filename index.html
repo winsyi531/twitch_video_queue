@@ -54,6 +54,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #panel .vol{display:flex;align-items:center;gap:10px;margin-top:12px}
 #panel .vol label{margin:0}
 #panel .vol input{flex:1;width:auto;padding:0}
+#panel .opt{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+#panel .opt label{display:flex;align-items:center;gap:6px;margin:0}
+#panel .opt input{width:auto;padding:0;margin:0}
+#panel .opt select{width:auto;flex:1;min-width:90px;padding:6px 8px}
 </style>
 </head>
 <body>
@@ -82,6 +86,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     <div class="bt"><button id="pr" class="pri" type="button">暫停</button><button id="sk" type="button">跳過</button></div>
   </div>
   <div class="vol"><label for="vol">🔊 音量</label><input id="vol" type="range" min="0" max="100" value="50"><span id="vv">50</span></div>
+  <div class="opt"><label for="cc"><input id="cc" type="checkbox"> 顯示字幕</label><label for="qs">畫質</label><select id="qs"><option value="hd1080">1080p</option><option value="hd720">720p</option><option value="large">480p</option><option value="medium">360p</option><option value="auto">自動</option></select></div>
   <h2>待播 <span id="cnt"></span></h2>
   <ul id="list"></ul>
   <p id="empty" class="sub">佇列是空的。觀眾兌換獎勵或打 !vq 後會出現在這裡。</p>
@@ -132,6 +137,7 @@ if (!ch) {
     $('stat').textContent = live ? '已連線到 overlay（' + ch + '）' : '找不到 overlay，請確認 OBS 來源已載入';
     const c = st && st.cur, list = st ? st.queue : [];
     if (st && document.activeElement !== $('vol')) { $('vol').value = st.vol; $('vv').textContent = st.vol; }
+    if (st) { if (document.activeElement !== $('cc')) $('cc').checked = !!st.cc; if (document.activeElement !== $('qs')) $('qs').value = st.qual; }
     $('now').hidden = !c;
     if (c) {
       $('nt').textContent = ti(c.id); $('nu').textContent = c.user + ' 點播'; $('th').src = thumb(c.id);
@@ -156,6 +162,8 @@ if (!ch) {
   $('list').onclick = e => { const b = e.target.closest('button'); if (b) send(b.dataset.c, b.closest('li').dataset.uid); };
   $('pr').onclick = () => send(st && st.paused ? 'resume' : 'pause');
   $('sk').onclick = () => send('skip');
+  $('cc').onchange = e => send('cc', null, null, e.target.checked ? 1 : 0);
+  $('qs').onchange = e => send('qual', null, e.target.value);
   $('vol').oninput = e => { $('vv').textContent = e.target.value; send('vol', null, null, +e.target.value); };
   $('clr').onclick = e => {
     if (armed) { send('clear'); armed = 0; e.target.textContent = '清空待播'; return; }
@@ -175,6 +183,14 @@ if (!ch) {
   let player, ready = false, cur = null, timer = null, kick = null;
   const bc = new BroadcastChannel('vq-' + ch), KEY = 'vq-state-' + ch;
   let vol = 50; try { const v = localStorage.getItem('vq-vol-' + ch); if (v !== null) vol = +v; } catch (e) {}
+  const ld = (k, d) => { try { const v = localStorage.getItem(k + ch); return v === null ? d : v; } catch (e) { return d; } };
+  const sv = (k, v) => { try { localStorage.setItem(k + ch, v); } catch (e) {} };
+  let cc = ld('vq-cc-', '0') === '1', qual = ld('vq-qual-', 'hd1080'), optsFor = null;
+  function applyOpts() {
+    if (!ready) return;
+    try { ['captions', 'cc'].forEach(mod => cc ? player.loadModule(mod) : player.unloadModule(mod)); } catch (e) {}
+    try { if (qual !== 'auto') { if (player.setPlaybackQualityRange) player.setPlaybackQualityRange(qual, qual); player.setPlaybackQuality(qual); } } catch (e) {}
+  }
   const inObs = !!window.obsstudio;
   function setVol(v) {
     vol = Math.max(0, Math.min(100, v | 0)); cv.value = vol;
@@ -187,7 +203,7 @@ if (!ch) {
     if (r && Date.now() - r.t < 6 * 3600e3) { if (r.cur) queue.push(r.cur); queue.push(...r.queue); } } catch (e) {}
   function pub() {
     const on = ready && cur;
-    bc.postMessage({ type: 'state', st: { cur, queue, vol, paused: !!on && player.getPlayerState() === 2,
+    bc.postMessage({ type: 'state', st: { cur, queue, vol, cc, qual, paused: !!on && player.getPlayerState() === 2,
       pos: on ? player.getCurrentTime() || 0 : 0, dur: on ? player.getDuration() || 0 : 0 } });
   }
   function changed() { render(); pub(); try { localStorage.setItem(KEY, JSON.stringify({ cur, queue, t: Date.now() })); } catch (e) {} }
@@ -204,6 +220,8 @@ if (!ch) {
     else if (m.cmd === 'pause' && ready) player.pauseVideo();
     else if (m.cmd === 'resume' && ready) player.playVideo();
     else if (m.cmd === 'vol') setVol(m.v);
+    else if (m.cmd === 'cc') { cc = !!m.v; sv('vq-cc-', cc ? 1 : 0); applyOpts(); pub(); }
+    else if (m.cmd === 'qual') { qual = m.url || 'auto'; sv('vq-qual-', qual); applyOpts(); pub(); }
     else if (m.cmd === 'add') { const v = parse(m.url || ''); if (v) { queue.push({ ...v, user: '主播', uid: uid() }); if (!cur) advance(); else changed(); } }
     else pub();
   };
@@ -261,12 +279,13 @@ if (!ch) {
 
   window.onYouTubeIframeAPIReady = () => {
     player = new YT.Player('p', { width: '100%', height: '100%',
-      playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, modestbranding: 1, origin: location.origin },
+      playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: q.get('controls') === '1' ? 1 : 0, cc_load_policy: 0, iv_load_policy: 3, modestbranding: 1, origin: location.origin },
       events: {
         onReady: () => { ready = true; player.setVolume(vol); if (!cur && queue.length) advance(); else show(); },
         onStateChange: e => {
           if (e.data === 0) advance();
           if (e.data === 1) render();
+          if (e.data === 1 && cur && optsFor !== cur.uid) { optsFor = cur.uid; applyOpts(); setTimeout(applyOpts, 1500); }
           if (e.data === 1 && !timer) timer = setTimeout(advance, CFG.max * 1000);
         },
         onError: () => advance()
