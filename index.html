@@ -176,14 +176,12 @@ if (!ch) {
   const bc = new BroadcastChannel('vq-' + ch), KEY = 'vq-state-' + ch;
   let vol = 50; try { const v = localStorage.getItem('vq-vol-' + ch); if (v !== null) vol = +v; } catch (e) {}
   const inObs = !!window.obsstudio;
-  ctl.hidden = inObs; cv.value = vol;
   function setVol(v) {
     vol = Math.max(0, Math.min(100, v | 0)); cv.value = vol;
     if (ready) player.setVolume(vol);
     try { localStorage.setItem('vq-vol-' + ch, vol); } catch (e) {}
     pub();
   }
-  cv.oninput = e => setVol(+e.target.value);
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   try { const r = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (r && Date.now() - r.t < 6 * 3600e3) { if (r.cur) queue.push(r.cur); queue.push(...r.queue); } } catch (e) {}
@@ -212,7 +210,7 @@ if (!ch) {
   setInterval(pub, 1000);
   const stage = document.getElementById('stage'), tag = document.getElementById('bar'), ctl = document.getElementById('ctl'), cv = document.getElementById('cv'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
   const log = t => { if (!CFG.debug) return; dbg.hidden = false; dbg.textContent = (dbg.textContent + '\n' + t).split('\n').slice(-8).join('\n'); };
-  const ROLE = { all: /./, sub: /subscriber|founder|vip|moderator|broadcaster/, vip: /vip|moderator|broadcaster/, mod: /moderator|broadcaster/ };
+  const ROLE = { all: /^/, sub: /subscriber|founder|vip|moderator|broadcaster/, vip: /vip|moderator|broadcaster/, mod: /moderator|broadcaster/ };
 
   function parse(text) {
     const m = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:\S*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/i);
@@ -297,6 +295,8 @@ if (!ch) {
     });
     ws.onclose = () => { log('斷線，3 秒後重連'); setTimeout(connect, 3000); };
   }
+  ctl.hidden = inObs; cv.value = vol;
+  cv.oninput = e => setVol(+e.target.value);
   connect();
 }
 </script>
