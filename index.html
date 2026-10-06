@@ -19,12 +19,12 @@ input,select,button{font:inherit;width:100%;padding:10px 12px;border-radius:8px;
 button{background:var(--ac);color:#fff;border:0;font-weight:700;margin-top:20px;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
 #out{margin-top:20px;padding:14px;border:1px dashed var(--ac);border-radius:8px;word-break:break-all;display:none}
-#stage{position:fixed;inset:0;opacity:0;pointer-events:none;transition:opacity .4s}
+#stage{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(calc(100vw - 2*var(--pad)),calc((100vh - 2*var(--pad))*16/9));aspect-ratio:16/9;border:var(--fw) solid var(--fc);border-radius:var(--fr);background:#000;box-shadow:0 10px 40px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .4s}
 #stage.on{opacity:1;pointer-events:auto}
 #snd{position:fixed;top:14px;right:14px;width:auto;margin:0;padding:8px 14px;border:0;border-radius:999px;background:rgba(0,0,0,.75);color:#fff;font-weight:700;cursor:pointer}
-#p{width:100%;height:100%;border:0}
-#tag{position:fixed;left:14px;bottom:14px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-weight:700;font-size:18px;opacity:0;transition:opacity .4s}
-#tag.on{opacity:1}
+#p{width:100%;height:100%;border:0;border-radius:calc(var(--fr) - var(--fw))}
+#tag{position:absolute;left:24px;bottom:calc(-1*var(--fw) - 18px);padding:4px 16px;border-radius:999px;background:var(--fc);color:#0b1020;font:700 18px/1.5 system-ui,'Noto Sans TC',sans-serif;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+:root{--fc:#7aa2ff;--fw:6px;--fr:20px;--pad:30px}
 #dbg{position:fixed;top:8px;left:8px;max-width:90%;padding:8px 10px;background:rgba(0,0,0,.8);color:#9f9;font:12px/1.5 monospace;white-space:pre-wrap}
 [hidden]{display:none!important}
 :root{--on:#fff}@media (prefers-color-scheme:dark){:root{--on:#0b1020}}
@@ -48,6 +48,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #panel .add{display:flex;gap:8px;margin-top:16px}
 #panel .add input{flex:1;width:auto}
 #panel #clr{margin-top:12px}
+#panel .vol{display:flex;align-items:center;gap:10px;margin-top:12px}
+#panel .vol label{margin:0}
+#panel .vol input{flex:1;width:auto;padding:0}
 </style>
 </head>
 <body>
@@ -75,14 +78,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     <div class="mt"><b id="nt"></b><span id="nu"></span><div class="pg"><i id="bar"></i></div></div>
     <div class="bt"><button id="pr" class="pri" type="button">暫停</button><button id="sk" type="button">跳過</button></div>
   </div>
+  <div class="vol"><label for="vol">🔊 音量</label><input id="vol" type="range" min="0" max="100" value="50"><span id="vv">50</span></div>
   <h2>待播 <span id="cnt"></span></h2>
   <ul id="list"></ul>
   <p id="empty" class="sub">佇列是空的。觀眾兌換獎勵或打 !vq 後會出現在這裡。</p>
   <div class="add"><input id="url" placeholder="貼上 YouTube 連結手動加入"><button id="addb" class="pri" type="button">加入</button></div>
   <button id="clr" type="button">清空待播</button>
 </div>
-<div id="stage"><div id="p"></div></div>
-<div id="tag"></div>
+<div id="stage"><div id="p"></div><div id="tag"></div></div>
 <button id="snd" type="button" hidden>🔊 點一下開啟聲音</button>
 <div id="dbg" hidden></div>
 
@@ -108,7 +111,7 @@ if (!ch) {
   const $ = id => document.getElementById(id);
   $('panel').hidden = false;
   const bc = new BroadcastChannel('vq-' + ch);
-  const send = (cmd, uid, url) => bc.postMessage({ type: 'cmd', cmd, uid, url });
+  const send = (cmd, uid, url, v) => bc.postMessage({ type: 'cmd', cmd, uid, url, v });
   const titles = {};
   let st = null, seen = 0, sig = null, armed = 0;
   const thumb = id => 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg';
@@ -125,6 +128,7 @@ if (!ch) {
     $('dot').className = live ? 'on' : '';
     $('stat').textContent = live ? '已連線到 overlay（' + ch + '）' : '找不到 overlay，請確認 OBS 來源已載入';
     const c = st && st.cur, list = st ? st.queue : [];
+    if (st && document.activeElement !== $('vol')) { $('vol').value = st.vol; $('vv').textContent = st.vol; }
     $('now').hidden = !c;
     if (c) {
       $('nt').textContent = ti(c.id); $('nu').textContent = c.user + ' 點播'; $('th').src = thumb(c.id);
@@ -149,6 +153,7 @@ if (!ch) {
   $('list').onclick = e => { const b = e.target.closest('button'); if (b) send(b.dataset.c, b.closest('li').dataset.uid); };
   $('pr').onclick = () => send(st && st.paused ? 'resume' : 'pause');
   $('sk').onclick = () => send('skip');
+  $('vol').oninput = e => { $('vv').textContent = e.target.value; send('vol', null, null, +e.target.value); };
   $('clr').onclick = e => {
     if (armed) { send('clear'); armed = 0; e.target.textContent = '清空待播'; return; }
     armed = 1; e.target.textContent = '再按一次確認清空';
@@ -160,17 +165,19 @@ if (!ch) {
   send('hello'); setInterval(draw, 1000);
 } else {
   document.body.classList.add('ov');
+  if (q.get('color')) document.documentElement.style.setProperty('--fc', '#' + q.get('color').replace('#', ''));
   const CFG = { reward: q.get('reward') || '', who: q.get('who') || 'all', max: +q.get('max') || 1200,
     cd: +q.get('cd') || 60, qmax: +q.get('qmax') || 20, debug: q.get('debug') === '1' };
   const queue = [], lastUse = {};
   let player, ready = false, cur = null, timer = null, kick = null;
   const bc = new BroadcastChannel('vq-' + ch), KEY = 'vq-state-' + ch;
+  let vol = 50; try { const v = localStorage.getItem('vq-vol-' + ch); if (v !== null) vol = +v; } catch (e) {}
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   try { const r = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (r && Date.now() - r.t < 6 * 3600e3) { if (r.cur) queue.push(r.cur); queue.push(...r.queue); } } catch (e) {}
   function pub() {
     const on = ready && cur;
-    bc.postMessage({ type: 'state', st: { cur, queue, paused: !!on && player.getPlayerState() === 2,
+    bc.postMessage({ type: 'state', st: { cur, queue, vol, paused: !!on && player.getPlayerState() === 2,
       pos: on ? player.getCurrentTime() || 0 : 0, dur: on ? player.getDuration() || 0 : 0 } });
   }
   function changed() { render(); pub(); try { localStorage.setItem(KEY, JSON.stringify({ cur, queue, t: Date.now() })); } catch (e) {} }
@@ -186,6 +193,7 @@ if (!ch) {
     else if (m.cmd === 'now' && i > -1) { queue.unshift(queue.splice(i, 1)[0]); advance(); }
     else if (m.cmd === 'pause' && ready) player.pauseVideo();
     else if (m.cmd === 'resume' && ready) player.playVideo();
+    else if (m.cmd === 'vol') { vol = Math.max(0, Math.min(100, m.v | 0)); if (ready) player.setVolume(vol); try { localStorage.setItem('vq-vol-' + ch, vol); } catch (e) {} pub(); }
     else if (m.cmd === 'add') { const v = parse(m.url || ''); if (v) { queue.push({ ...v, user: '主播', uid: uid() }); if (!cur) advance(); else changed(); } }
     else pub();
   };
@@ -203,8 +211,7 @@ if (!ch) {
   function render() {
     stage.classList.toggle('on', !!cur);
     snd.hidden = !(cur && ready && player.isMuted());
-    tag.classList.toggle('on', !!cur);
-    if (cur) tag.textContent = '🎬 ' + cur.user + ' 點播' + (queue.length ? ' ・ 還有 ' + queue.length + ' 支' : '');
+    if (cur) tag.textContent = '🎬 ' + cur.user + ' 點播';
   }
   function show() {
     if (!ready) return;
@@ -246,7 +253,7 @@ if (!ch) {
     player = new YT.Player('p', { width: '100%', height: '100%',
       playerVars: { autoplay: 1, playsinline: 1, rel: 0, controls: 0, modestbranding: 1, origin: location.origin },
       events: {
-        onReady: () => { ready = true; if (!cur && queue.length) advance(); else show(); },
+        onReady: () => { ready = true; player.setVolume(vol); if (!cur && queue.length) advance(); else show(); },
         onStateChange: e => {
           if (e.data === 0) advance();
           if (e.data === 1) render();
