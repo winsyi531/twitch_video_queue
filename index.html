@@ -26,8 +26,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #snd{width:auto;margin:0;padding:2px 6px;border:0;background:transparent;color:#fff;font-weight:700;cursor:pointer}
 #p{display:block;width:100%;height:100%;border:0}
 #vid{aspect-ratio:16/9;background:#000}
-#who{height:var(--hh);flex:none;display:flex;align-items:center;padding:0 18px;color:var(--ft);font:700 20px/1 system-ui,'Noto Sans TC',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-:root{--fc:#7aa2ff;--ft:#0b1020;--fw:6px;--fr:20px;--pad:48px;--hh:44px}
+#who{height:var(--hh);flex:none;display:flex;align-items:center;justify-content:space-between;gap:32px;padding:0 32px;color:var(--ft);font:700 var(--hf)/1 system-ui,'Noto Sans TC','Microsoft JhengHei',sans-serif;overflow:hidden}
+#wn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wt{flex:none;font-variant-numeric:tabular-nums;white-space:nowrap}
+:root{--fc:#7aa2ff;--ft:#0b1020;--fw:6px;--fr:20px;--pad:48px;--hh:110px;--hf:64px}
 #dbg{position:fixed;top:8px;left:8px;max-width:90%;padding:8px 10px;background:rgba(0,0,0,.8);color:#9f9;font:12px/1.5 monospace;white-space:pre-wrap}
 [hidden]{display:none!important}
 :root{--on:#fff}@media (prefers-color-scheme:dark){:root{--on:#0b1020}}
@@ -124,7 +126,7 @@ body.ui #stage{left:var(--ml);top:var(--mt);transform:none;width:var(--sw)}
   <div class="add"><input id="url" placeholder="貼上 YouTube 連結手動加入"><button id="addb" class="pri" type="button">加入</button></div>
   <button id="clr" type="button">清空待播</button>
 </div>
-<div id="stage"><div id="who"></div><div id="vid"><div id="p"></div></div></div>
+<div id="stage"><div id="who"><span id="wn"></span><span id="wt"></span></div><div id="vid"><div id="p"></div></div></div>
 <div id="ctl" hidden><button id="snd" type="button" hidden>🔊 點一下開啟聲音</button><input id="cv" type="range" min="0" max="100" aria-label="音量"></div>
 <div id="ui" hidden>
   <div id="side"><h3>待播 <span id="ucnt"></span></h3><ul id="ulist"></ul><p id="uempty">佇列是空的</p></div>
@@ -226,7 +228,7 @@ if (!ch) {
     cd: +q.get('cd') || 60, qmax: +q.get('qmax') || 20, debug: q.get('debug') === '1' };
   const ui = q.get('ui') === '1';
   const queue = [], lastUse = {};
-  let player, ready = false, cur = null, timer = null, kick = null;
+  let player, ready = false, cur = null, timer = null, kick = null, capEnd = 0;
   const bc = new BroadcastChannel('vq-' + ch), KEY = 'vq-state-' + ch;
   let vol = 50; try { const v = localStorage.getItem('vq-vol-' + ch); if (v !== null) vol = +v; } catch (e) {}
   const ld = (k, d) => { try { const v = localStorage.getItem(k + ch); return v === null ? d : v; } catch (e) { return d; } };
@@ -273,7 +275,7 @@ if (!ch) {
     else pub();
   }
   setInterval(pub, 1000);
-  const stage = document.getElementById('stage'), tag = document.getElementById('who'), ctl = document.getElementById('ctl'), cv = document.getElementById('cv'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
+  const stage = document.getElementById('stage'), wn = document.getElementById('wn'), wt = document.getElementById('wt'), ctl = document.getElementById('ctl'), cv = document.getElementById('cv'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
   const log = t => { if (!CFG.debug) return; dbg.hidden = false; dbg.textContent = (dbg.textContent + '\n' + t).split('\n').slice(-8).join('\n'); };
   const U = ui ? { root: ui_('ui'), nt: ui_('unt'), nu: ui_('unu'), pr: ui_('upr'), sk: ui_('usk'), vol: ui_('uvol'), vv: ui_('uvv'), cc: ui_('ucc'), qs: ui_('uqs'),
     bar: ui_('ubar'), url: ui_('uurl'), add: ui_('uadd'), clr: ui_('uclr'), list: ui_('ulist'), cnt: ui_('ucnt'), empty: ui_('uempty') } : null;
@@ -348,7 +350,7 @@ if (!ch) {
   function render() {
     stage.classList.toggle('on', !!cur);
     snd.hidden = !(cur && ready && player.isMuted());
-    if (cur) tag.textContent = cur.user;
+    if (cur) wn.textContent = cur.user;
   }
   function show() {
     if (!ready) return;
@@ -362,7 +364,7 @@ if (!ch) {
       }, 2500);
     } else player.stopVideo();
   }
-  function advance() { clearTimeout(timer); timer = null; cur = queue.shift() || null; changed(); show(); }
+  function advance() { clearTimeout(timer); timer = null; capEnd = 0; wt.textContent = ''; cur = queue.shift() || null; changed(); show(); }
 
   function onMsg(tags, user, text) {
     const badges = tags.badges || '';
@@ -395,7 +397,7 @@ if (!ch) {
           if (e.data === 0) advance();
           if (e.data === 1) render();
           if (e.data === 1 && cur && optsFor !== cur.uid) { optsFor = cur.uid; applyOpts(); setTimeout(applyOpts, 1500); }
-          if (e.data === 1 && !timer) timer = setTimeout(advance, CFG.max * 1000);
+          if (e.data === 1 && !timer) { timer = setTimeout(advance, CFG.max * 1000); capEnd = Date.now() + CFG.max * 1000; }
         },
         onError: () => advance()
       } });
@@ -425,6 +427,19 @@ if (!ch) {
   }
   ctl.hidden = inObs; cv.value = vol;
   cv.oninput = e => setVol(+e.target.value);
+  function fmt(t) {
+    t = Math.max(0, Math.ceil(t));
+    const h = t / 3600 | 0, m = (t % 3600) / 60 | 0, r = t % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(r).padStart(2, '0');
+  }
+  function tick() {
+    if (!cur || !ready) { wt.textContent = ''; return; }
+    let rem = Infinity;
+    try { const d = player.getDuration() || 0, c = player.getCurrentTime() || 0; if (d > 0) rem = d - c; } catch (e) {}
+    if (capEnd) rem = Math.min(rem, (capEnd - Date.now()) / 1000);
+    wt.textContent = isFinite(rem) ? fmt(rem) : '';
+  }
+  setInterval(tick, 500);
   if (ui) initUi();
   connect();
 }
