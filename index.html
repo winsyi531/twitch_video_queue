@@ -26,10 +26,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #snd{width:auto;margin:0;padding:2px 6px;border:0;background:transparent;color:#fff;font-weight:700;cursor:pointer}
 #p{display:block;width:100%;height:100%;border:0}
 #vid{aspect-ratio:16/9;background:#000}
-#who{height:var(--hh);flex:none;display:flex;align-items:center;justify-content:space-between;gap:32px;padding:0 32px;color:var(--ft);font:700 var(--hf)/1 system-ui,'Noto Sans TC','Microsoft JhengHei',sans-serif;overflow:hidden}
+#who{position:relative;height:var(--hh);flex:none;display:flex;align-items:center;justify-content:space-between;gap:32px;padding:0 34px;color:var(--ft);font-family:var(--ff);font-weight:var(--hw);font-size:var(--hf);line-height:1;letter-spacing:.05em;background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,0) 65%);overflow:hidden}
+#who::before,#who::after{content:'';position:absolute;left:0;bottom:0;height:var(--pgh)}
+#who::before{right:0;background:rgba(0,0,0,.18)}
+#who::after{width:calc(var(--pg,0)*100%);background:var(--ft);opacity:.6}
 #wn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#wt{flex:none;font-variant-numeric:tabular-nums;white-space:nowrap}
-:root{--fc:#7aa2ff;--ft:#0b1020;--fw:6px;--fr:20px;--pad:48px;--hh:110px;--hf:64px}
+#wt{flex:none;font-family:var(--nf);font-weight:var(--nw);font-size:.8em;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap;padding:.16em .6em;border-radius:999px;background:rgba(0,0,0,.2)}
+#wt:empty{display:none}
+:root{--fc:#7aa2ff;--ft:#0b1020;--fw:6px;--fr:20px;--pad:48px;--hh:110px;--hf:64px;--pgh:6px;--hw:900;--nw:800;--ff:'Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;--nf:'JetBrains Mono',ui-monospace,Consolas,monospace}
 #dbg{position:fixed;top:8px;left:8px;max-width:90%;padding:8px 10px;background:rgba(0,0,0,.8);color:#9f9;font:12px/1.5 monospace;white-space:pre-wrap}
 [hidden]{display:none!important}
 :root{--on:#fff}@media (prefers-color-scheme:dark){:root{--on:#0b1020}}
@@ -223,12 +227,26 @@ if (!ch) {
   send('hello'); setInterval(draw, 1000);
 } else {
   document.body.classList.add('ov');
+  const clean = v => (v || '').replace(/['"\;{}<>]/g, '').trim();
+  const gf = (name, w) => {
+    if (!name) return;
+    const l = document.createElement('link'); l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(name).replace(/%20/g, '+') + (w ? ':wght@' + w : '') + '&display=swap';
+    document.head.appendChild(l);
+  };
+  gf('Noto Sans TC', '700;900'); gf('JetBrains Mono', '800');
+  const wOk = v => /^\d{3}$/.test(v || '') ? v : '';
+  const rs = document.documentElement.style;
+  if (clean(q.get('font'))) { const f = clean(q.get('font')), w = wOk(q.get('fw')); gf(f, w);
+    rs.setProperty('--ff', "'" + f + "','Noto Sans TC',sans-serif"); rs.setProperty('--hw', w || 400); }
+  if (clean(q.get('nfont'))) { const f = clean(q.get('nfont')), w = wOk(q.get('nw')); gf(f, w);
+    rs.setProperty('--nf', "'" + f + "','JetBrains Mono',monospace"); rs.setProperty('--nw', w || 400); }
   if (q.get('color')) document.documentElement.style.setProperty('--fc', '#' + q.get('color').replace('#', ''));
   const CFG = { reward: q.get('reward') || '', who: q.get('who') || 'all', max: +q.get('max') || 1200,
     cd: +q.get('cd') || 60, qmax: +q.get('qmax') || 20, debug: q.get('debug') === '1' };
   const ui = q.get('ui') === '1';
   const queue = [], lastUse = {};
-  let player, ready = false, cur = null, timer = null, kick = null, capEnd = 0;
+  let player, ready = false, cur = null, kick = null, played = 0, lastT = 0;
   const bc = new BroadcastChannel('vq-' + ch), KEY = 'vq-state-' + ch;
   let vol = 50; try { const v = localStorage.getItem('vq-vol-' + ch); if (v !== null) vol = +v; } catch (e) {}
   const ld = (k, d) => { try { const v = localStorage.getItem(k + ch); return v === null ? d : v; } catch (e) { return d; } };
@@ -275,7 +293,7 @@ if (!ch) {
     else pub();
   }
   setInterval(pub, 1000);
-  const stage = document.getElementById('stage'), wn = document.getElementById('wn'), wt = document.getElementById('wt'), ctl = document.getElementById('ctl'), cv = document.getElementById('cv'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
+  const stage = document.getElementById('stage'), wh = document.getElementById('who'), wn = document.getElementById('wn'), wt = document.getElementById('wt'), ctl = document.getElementById('ctl'), cv = document.getElementById('cv'), snd = document.getElementById('snd'), dbg = document.getElementById('dbg');
   const log = t => { if (!CFG.debug) return; dbg.hidden = false; dbg.textContent = (dbg.textContent + '\n' + t).split('\n').slice(-8).join('\n'); };
   const U = ui ? { root: ui_('ui'), nt: ui_('unt'), nu: ui_('unu'), pr: ui_('upr'), sk: ui_('usk'), vol: ui_('uvol'), vv: ui_('uvv'), cc: ui_('ucc'), qs: ui_('uqs'),
     bar: ui_('ubar'), url: ui_('uurl'), add: ui_('uadd'), clr: ui_('uclr'), list: ui_('ulist'), cnt: ui_('ucnt'), empty: ui_('uempty') } : null;
@@ -364,7 +382,7 @@ if (!ch) {
       }, 2500);
     } else player.stopVideo();
   }
-  function advance() { clearTimeout(timer); timer = null; capEnd = 0; wt.textContent = ''; cur = queue.shift() || null; changed(); show(); }
+  function advance() { played = 0; wt.textContent = ''; cur = queue.shift() || null; changed(); show(); }
 
   function onMsg(tags, user, text) {
     const badges = tags.badges || '';
@@ -397,7 +415,6 @@ if (!ch) {
           if (e.data === 0) advance();
           if (e.data === 1) render();
           if (e.data === 1 && cur && optsFor !== cur.uid) { optsFor = cur.uid; applyOpts(); setTimeout(applyOpts, 1500); }
-          if (e.data === 1 && !timer) { timer = setTimeout(advance, CFG.max * 1000); capEnd = Date.now() + CFG.max * 1000; }
         },
         onError: () => advance()
       } });
@@ -433,11 +450,17 @@ if (!ch) {
     return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(r).padStart(2, '0');
   }
   function tick() {
-    if (!cur || !ready) { wt.textContent = ''; return; }
-    let rem = Infinity;
-    try { const d = player.getDuration() || 0, c = player.getCurrentTime() || 0; if (d > 0) rem = d - c; } catch (e) {}
-    if (capEnd) rem = Math.min(rem, (capEnd - Date.now()) / 1000);
-    wt.textContent = isFinite(rem) ? fmt(rem) : '';
+    const now = Date.now(), dt = lastT ? Math.min((now - lastT) / 1000, 30) : 0; lastT = now;
+    if (!cur || !ready) { wt.textContent = ''; wh.style.setProperty('--pg', 0); return; }
+    let st = -1, d = 0, c = 0;
+    try { st = player.getPlayerState(); d = player.getDuration() || 0; c = player.getCurrentTime() || 0; } catch (e) {}
+    if (st === 1) played += dt;
+    if (played >= CFG.max) { advance(); return; }
+    if (d <= 0 && st !== 1) { wt.textContent = ''; return; }
+    let rem = CFG.max - played;
+    if (d > 0) rem = Math.min(rem, d - c);
+    wt.textContent = fmt(rem);
+    wh.style.setProperty('--pg', Math.min(1, played / (played + rem)) || 0);
   }
   setInterval(tick, 500);
   if (ui) initUi();
